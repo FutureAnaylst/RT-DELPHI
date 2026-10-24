@@ -391,6 +391,11 @@ async function loadAdmin() {
 const refresh = async () => {
   try {
     await loadData();
+    // If everything was reset, send anyone on a personal screen back to the start.
+    if (!state.profile && (state.screen === "forecast" || state.screen === "results")) {
+      state.code = null;
+      go("welcome");
+    }
     renderDynamic();
   } catch (e) { showError(e); }
 };
@@ -669,6 +674,13 @@ function renderAdmin() {
         <button class="btn ghost" type="button" id="csvBtn">Export CSV</button>
       </div>
       <p id="testCount"></p>
+
+      <h3>Start fresh</h3>
+      <p>Permanently deletes every response and every panelist profile (real and test) so you can begin a new panel. Panelists who return will start from the welcome page. This cannot be undone.</p>
+      <label style="display:flex;gap:8px;align-items:center;font-size:.92rem;color:var(--muted)"><input type="checkbox" id="resetSettings"> Also clear the deadline and question</label>
+      <div class="adminbtns">
+        <button class="btn" type="button" id="resetBtn" style="background:#a62f1a">Delete all responses</button>
+      </div>
       <p class="msg" id="adminMsg" role="status"></p>`;
   }
   if (state.isAdmin && $("testCount")) {
@@ -797,6 +809,21 @@ async function generateTest() {
   setAdminMsg(`Generated ${n} test responses. Median: Capesize ${fmt(med)}, Panamax ${fmt(medP)}.`, "good");
 }
 
+async function resetAll() {
+  const alsoSettings = $("resetSettings").checked;
+  const typed = prompt("This permanently deletes ALL responses and profiles.\nType DELETE to confirm.");
+  if (typed === null) return;
+  if (typed.trim() !== "DELETE") return setAdminMsg("Not deleted: you did not type DELETE.", "err");
+  $("resetBtn").disabled = true;
+  const { error } = await state.client.rpc("admin_reset_all", { p_clear_settings: alsoSettings });
+  $("resetBtn").disabled = false;
+  if (error) return setAdminMsg("Could not delete: " + error.message, "err");
+  state.code = null;
+  await refresh();
+  if (alsoSettings) { $("dlIn").value = ""; $("qIn").value = ""; }
+  setAdminMsg("All responses deleted. You are starting fresh.", "good");
+}
+
 async function clearTest() {
   const { error } = await state.client.rpc("admin_clear_test");
   if (error) return setAdminMsg("Could not remove: " + error.message, "err");
@@ -867,6 +894,7 @@ $("adminBody").addEventListener("click", (e) => {
   if (id === "closeNowBtn") saveSettings(new Date().toISOString());
   if (id === "genBtn") generateTest();
   if (id === "clearTestBtn") clearTest();
+  if (id === "resetBtn") resetAll();
   if (id === "csvBtn") exportCsv();
 });
 
