@@ -1,0 +1,907 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dry bulk freight forecast panel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --paper: #e8eef0;
+    --panel: #f6f9fa;
+    --ink: #11303d;
+    --muted: #55707d;
+    --line: #c3d2d8;
+    --teal: #1d6b73;
+    --band: #b9d6d9;
+    --mark: #d2452b;
+    --ok: #1d6b73;
+    --head: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+    --body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font: 400 16px/1.55 var(--body); }
+  [hidden] { display: none !important; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 32px 20px 64px; }
+
+  /* Header */
+  .top { display: flex; flex-wrap: wrap; gap: 16px 40px; justify-content: space-between; align-items: flex-end; }
+  h1 { font: 700 clamp(1.7rem, 3.4vw, 2.4rem)/1.1 var(--head); margin: 0 0 8px; letter-spacing: -0.01em; }
+  .sub { margin: 0; color: var(--muted); max-width: 58ch; }
+  .who { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; font-size: .92rem; }
+  .chip { font-weight: 600; padding: 4px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; }
+  select, input, textarea, button { font: inherit; color: inherit; }
+  select { padding: 9px 10px; border: 1px solid var(--line); border-radius: 4px; background: #fff; width: 100%; }
+  .linkbtn { background: none; border: 0; padding: 0; color: var(--teal); text-decoration: underline; cursor: pointer; font-weight: 500; }
+  .linkbtn:hover { color: var(--ink); }
+  .question { margin: 22px 0 0; padding: 12px 16px; border-left: 4px solid var(--teal); background: var(--panel); max-width: 80ch; }
+  .note { color: var(--muted); font-size: .92rem; margin: 10px 0 0; }
+  .note strong { color: var(--ink); }
+
+  h2 { font: 600 1.4rem/1.2 var(--head); margin: 36px 0 6px; }
+  h3 { font: 600 1.15rem/1.2 var(--head); margin: 0 0 12px; }
+
+  .screen { margin-top: 28px; }
+  .narrow { max-width: 560px; }
+  .formgrid { display: grid; gap: 18px; margin-top: 16px; }
+  .formgrid label, .lab { font-weight: 600; display: block; }
+  .formgrid label span { display: block; margin-bottom: 6px; }
+  .textin { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 4px; background: #fff; }
+  .textin:focus-visible { outline: 2px solid var(--teal); outline-offset: 1px; }
+
+  /* Forecast cards */
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px; margin-top: 18px; max-width: 760px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 18px; }
+  .field { display: flex; align-items: stretch; border: 1px solid var(--line); border-radius: 4px; background: #fff; }
+  .field:focus-within { outline: 2px solid var(--teal); outline-offset: 1px; }
+  .field .pre { padding: 0 10px; display: flex; align-items: center; color: var(--muted); background: #eef3f4; border-right: 1px solid var(--line); font-size: .9rem; }
+  .field input { flex: 1; min-width: 0; border: 0; background: transparent; padding: 10px 12px; outline: none; font-size: 1.3rem; font-variant-numeric: tabular-nums; font-weight: 500; }
+  .conf { display: block; margin-top: 12px; font-size: .88rem; color: var(--muted); }
+  .conf select { margin-top: 4px; color: var(--ink); }
+  input:disabled, select:disabled, textarea:disabled { opacity: .55; cursor: not-allowed; }
+
+  .submit { margin-top: 24px; max-width: 760px; }
+  textarea { width: 100%; min-height: 110px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 4px; background: #fff; resize: vertical; }
+  textarea:focus-visible, select:focus-visible, button:focus-visible, input:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 18px; margin-top: 14px; }
+  .btn { background: var(--ink); color: #fff; border: 0; border-radius: 4px; padding: 11px 20px; font-weight: 600; cursor: pointer; }
+  .btn:hover { background: #0b222c; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+  .btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--ink); }
+  .btn.ghost:hover { background: #dbe6e9; }
+  .msg { font-size: .95rem; }
+  .msg.err { color: #a62f1a; font-weight: 500; }
+  .msg.good { color: var(--ok); font-weight: 500; }
+
+  .indblock { margin-top: 28px; max-width: 760px; }
+  .indblock + .indblock { border-top: 1px solid var(--line); padding-top: 26px; }
+  .tabs { display: flex; flex-wrap: wrap; gap: 4px 22px; margin: 22px 0 0; border-bottom: 1px solid var(--line); }
+  .tab { background: none; border: 0; padding: 10px 0 12px; cursor: pointer; color: var(--muted); font-weight: 500; border-bottom: 3px solid transparent; margin-bottom: -1px; }
+  .tab:hover { color: var(--ink); }
+  .tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--teal); font-weight: 600; }
+
+  /* Results */
+  .resulthead { display: flex; flex-wrap: wrap; gap: 12px 24px; justify-content: space-between; align-items: flex-end; }
+  .block { padding: 26px 0; border-bottom: 1px solid var(--line); }
+  .viz svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .ax { stroke: var(--muted); stroke-width: 1; }
+  .tick { stroke: var(--muted); stroke-width: 1; }
+  .band { fill: var(--band); }
+  .med { stroke: var(--ink); stroke-width: 3; }
+  .dot { fill: var(--teal); fill-opacity: .8; }
+  .me { fill: var(--mark); stroke: #fff; stroke-width: 2; }
+  .wavg { fill: var(--ink); stroke: #fff; stroke-width: 1.5; }
+  .t { font: 500 12px var(--body); fill: var(--muted); }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px 18px; margin: 12px 0 0; }
+  .stats div { min-width: 0; }
+  .stats dt { font-size: .8rem; color: var(--muted); }
+  .stats dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .stats .big dd { font: 700 1.5rem/1.2 var(--head); }
+  .empty { color: var(--muted); margin: 6px 0 0; }
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 20px; margin: 18px 0 0; color: var(--muted); font-size: .85rem; }
+  .legend span { display: inline-flex; align-items: center; gap: 7px; }
+  .k-dot, .k-me { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+  .k-dot { background: var(--teal); }
+  .k-me { background: var(--mark); }
+  .k-band { width: 18px; height: 10px; background: var(--band); display: inline-block; }
+  .k-med { width: 3px; height: 14px; background: var(--ink); display: inline-block; }
+  .k-wavg { width: 9px; height: 9px; background: var(--ink); transform: rotate(45deg); display: inline-block; }
+
+  .reasons { margin: 12px 0 0; padding: 0; list-style: none; max-width: 760px; }
+  .reasons li { padding: 14px 0; border-top: 1px solid var(--line); }
+  .reasons .by { font-weight: 600; font-size: .92rem; margin: 0 0 4px; }
+  .reasons .by span { color: var(--muted); font-weight: 400; }
+  .reasons .by .mine { color: var(--mark); font-weight: 600; }
+  .reasons p { margin: 0 0 6px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .tags { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .85rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  /* Popup */
+  dialog { border: 0; border-radius: 8px; padding: 26px; max-width: 460px; width: calc(100% - 32px); background: var(--panel); color: var(--ink); box-shadow: 0 20px 60px rgba(17,48,61,.35); }
+  dialog::backdrop { background: rgba(17,48,61,.55); }
+  dialog h2 { margin: 0 0 10px; }
+  dialog p { margin: 0 0 12px; }
+  .idbox { background: #fff; border: 1px solid var(--line); border-radius: 6px; padding: 12px 14px; margin: 14px 0; display: grid; gap: 8px; }
+  .idbox dt { font-size: .8rem; color: var(--muted); }
+  .idbox dd { margin: 0; font: 600 1.15rem/1.3 var(--head); letter-spacing: .02em; display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+
+  /* Facilitator */
+  details.admin { margin-top: 56px; border-top: 1px solid var(--line); padding-top: 18px; max-width: 760px; }
+  details.admin summary { cursor: pointer; font-weight: 600; }
+  details.admin p { color: var(--muted); font-size: .92rem; }
+  details.admin h3 { margin-top: 22px; font-size: 1rem; }
+  .adminrow { display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: flex-end; margin-top: 8px; }
+  .adminrow label { font-weight: 600; font-size: .9rem; }
+  .adminrow label span { display: block; margin-bottom: 4px; }
+  .adminrow .textin { width: 170px; }
+  code { background: #dbe6e9; padding: 2px 6px; border-radius: 3px; font-size: .88em; overflow-wrap: anywhere; }
+  .adminbtns { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+
+  .banner { margin: 32px 0; padding: 18px 20px; background: var(--panel); border-left: 4px solid var(--mark); max-width: 70ch; }
+  .banner h2 { margin-top: 0; font-size: 1.15rem; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Dry bulk freight forecast panel</h1>
+      <p class="sub" id="sub"></p>
+    </div>
+    <div class="who" id="who" hidden>
+      <span class="chip" id="whoName"></span>
+      <button class="linkbtn" id="idBtn" type="button">Name and recovery code</button>
+    </div>
+  </header>
+
+  <div id="app" hidden>
+
+    <!-- 1. Welcome -->
+    <section class="screen" id="s-welcome" hidden>
+      <p class="question" id="question" hidden></p>
+      <p class="note" id="welcomeDeadline"></p>
+      <p class="note" style="max-width:60ch">You will give Capesize and Panamax 5TC forecasts (two weeks and one month ahead for each) and your reasoning. Then you will see how the whole panel compares. Your name stays anonymous.</p>
+      <div class="actions">
+        <button class="btn" id="startBtn" type="button">Start</button>
+        <button class="linkbtn" id="toRestore" type="button">I have been here before</button>
+      </div>
+    </section>
+
+    <!-- Returning visitor -->
+    <section class="screen narrow" id="s-restore" hidden>
+      <h2 style="margin-top:0">Welcome back</h2>
+      <p class="note">Enter the anonymous name and recovery code you were given. If you are on the same browser as before, you will not need this.</p>
+      <div class="formgrid">
+        <label><span>Anonymous name</span><input class="textin" id="rName" type="text" autocomplete="off" placeholder="e.g. Calm Heron 42"></label>
+        <label><span>Recovery code</span><input class="textin" id="rCode" type="text" autocomplete="off" placeholder="e.g. K7M2-9QXP"></label>
+      </div>
+      <div class="actions">
+        <button class="btn" id="restoreBtn" type="button">Restore my profile</button>
+        <button class="linkbtn" id="restoreBack" type="button">Back</button>
+        <span class="msg" id="restoreMsg" role="status"></span>
+      </div>
+    </section>
+
+    <!-- 2. About you -->
+    <section class="screen narrow" id="s-about" hidden>
+      <h2 style="margin-top:0">About you</h2>
+      <p class="note">Three quick questions. They are used to weight the group results and are never shown next to your name.</p>
+      <div class="formgrid">
+        <label><span>What is your role?</span><select id="aRole"></select></label>
+        <label id="aRoleOtherWrap" hidden><span>Please type your role</span><input class="textin" id="aRoleOther" type="text" maxlength="60" autocomplete="off" placeholder="e.g. Ship manager"></label>
+        <label><span>Which country are you located in?</span><select id="aCountry"></select></label>
+        <label><span>Years of experience</span><select id="aExp"></select></label>
+      </div>
+      <div class="actions">
+        <button class="btn" id="aboutBtn" type="button">Continue</button>
+        <button class="linkbtn" id="aboutBack" type="button">Back</button>
+        <span class="msg" id="aboutMsg" role="status"></span>
+      </div>
+    </section>
+
+    <!-- 3. Forecast -->
+    <section class="screen" id="s-forecast" hidden>
+      <h2 style="margin-top:0">Your forecasts</h2>
+      <p class="note" id="fcNote"></p>
+      <div id="fcards"></div>
+      <div class="submit">
+        <div class="actions">
+          <button class="btn" id="saveBtn" type="button">Submit forecast</button>
+          <button class="linkbtn" id="fcBack" type="button" hidden>Back to group results</button>
+          <span class="msg" id="msg" role="status"></span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 4. Group results -->
+    <section class="screen" id="s-results" hidden>
+      <div class="resulthead">
+        <div>
+          <h2 style="margin:0">Group results</h2>
+          <p class="note" id="resNote"></p>
+        </div>
+        <button class="btn ghost" id="reviseBtn" type="button">Revise my answers</button>
+      </div>
+      <nav class="tabs" id="rtabs" role="tablist" aria-label="Freight indicator"></nav>
+      <div id="blocks"></div>
+      <div class="legend" aria-hidden="true">
+        <span><i class="k-dot"></i>Panelist</span>
+        <span><i class="k-me"></i>You</span>
+        <span><i class="k-band"></i>Middle half of panel</span>
+        <span><i class="k-med"></i>Median</span>
+        <span><i class="k-wavg"></i>Weighted average</span>
+      </div>
+      <p class="note" style="max-width:70ch">Weighted average: each forecast counts for its confidence (1 to 5) multiplied by an experience factor, from 0.5 for under a year up to 1.75 for 20+ years. Average experience is estimated from the middle of each band.</p>
+
+      <h2 id="reasonTitle">Panel reasoning</h2>
+      <p class="note" style="margin-top:0">Shared under anonymous names. Newest first.</p>
+      <ul class="reasons" id="reasons"></ul>
+    </section>
+  </div>
+
+  <div id="setup" class="banner" hidden>
+    <h2>Connect your Supabase project</h2>
+    <p>Open this file and set <code>SUPABASE_URL</code> and <code>SUPABASE_ANON_KEY</code> near the top of the script. Then run <code>supabase_setup.sql</code> in your Supabase SQL editor.</p>
+  </div>
+
+  <div id="fatal" class="banner" hidden></div>
+
+  <details class="admin" id="adminBox" hidden>
+    <summary id="adminSummary">Facilitator setup</summary>
+    <div id="adminBody"></div>
+  </details>
+</div>
+
+<dialog id="popup" aria-labelledby="popTitle">
+  <h2 id="popTitle"></h2>
+  <div id="popBody"></div>
+  <div class="actions"><button class="btn" id="popClose" type="button">Got it</button></div>
+</dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+/* ============================================================
+   1. CONFIG: edit these
+   ============================================================ */
+const SUPABASE_URL = "https://uzqqyxpqugvgqgkxdksu.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_S_ATGOyLEBxwn7ePAuG33g_BKTN05bW";
+
+// Forecast horizons. `days` must match the database check (14 and 30).
+const HORIZONS = [
+  { days: 14, label: "In 2 weeks" },
+  { days: 30, label: "In 1 month" },
+];
+// Indicators on the panel. `id` must match the database check (CAPE, PMX).
+const INDICATORS = [
+  { id: "CAPE", name: "Capesize 5TC" },
+  { id: "PMX",  name: "Panamax 5TC" },
+];
+const CONFIDENCE = [
+  [1, "1 - Mostly a guess"],
+  [2, "2 - Low"],
+  [3, "3 - Moderate"],
+  [4, "4 - High"],
+  [5, "5 - Very high"],
+];
+// `id` must match the database check. `years` = band midpoint (for the average
+// years shown); `weight` = how much a forecast counts in the weighted average.
+const EXPERIENCE = [
+  { id: "<1",    label: "Less than 1 year", years: 0.5, weight: 0.5  },
+  { id: "1-3",   label: "1 to 3 years",     years: 2,   weight: 0.75 },
+  { id: "3-5",   label: "3 to 5 years",     years: 4,   weight: 1    },
+  { id: "5-10",  label: "5 to 10 years",    years: 7.5, weight: 1.25 },
+  { id: "10-20", label: "10 to 20 years",   years: 15,  weight: 1.5  },
+  { id: "20+",   label: "20+ years",        years: 25,  weight: 1.75 },
+];
+const ROLES = ["Broker", "Charterer", "Researcher / analyst", "Other"];
+const COUNTRIES = ["Argentina","Australia","Belgium","Brazil","Canada","Chile","China","Colombia","Cyprus","Denmark","Egypt","Finland","France","Germany","Greece","Hong Kong","India","Indonesia","Italy","Japan","Malaysia","Monaco","Netherlands","New Zealand","Norway","Peru","Philippines","Poland","Portugal","Qatar","Russia","Saudi Arabia","Singapore","South Africa","South Korea","Spain","Sweden","Switzerland","Taiwan","Turkey","United Arab Emirates","United Kingdom","United States","Vietnam","Other"];
+const NAME_ADJ = ["Amber","Brisk","Calm","Dusty","Eager","Fleet","Gilded","Hardy","Ivory","Jolly","Keen","Lucky","Mellow","Noble","Quiet","Rapid","Steady","Swift","Tidal","Windy"];
+const NAME_NOUN = ["Heron","Falcon","Otter","Marlin","Gull","Orca","Petrel","Skua","Tern","Osprey","Dolphin","Albatross","Pelican","Kestrel","Puffin","Seal"];
+
+// Safety-net refresh in case a realtime message is missed (seconds).
+const POLL_SECONDS = 30;
+
+/* ============================================================
+   2. HELPERS
+   ============================================================ */
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const nf = new Intl.NumberFormat("en-GB", { maximumFractionDigits: 0 });
+const fmt = (v) => "$" + nf.format(v);
+const EXP_BY_ID = Object.fromEntries(EXPERIENCE.map((e) => [e.id, e]));
+const dateFmt = new Intl.DateTimeFormat("en-GB", { dateStyle: "medium", timeStyle: "short" });
+const pick = (a) => a[Math.floor(Math.random() * a.length)];
+
+// Quantile with linear interpolation. `sorted` must be ascending.
+function quantile(sorted, p) {
+  if (!sorted.length) return null;
+  const idx = (sorted.length - 1) * p;
+  const lo = Math.floor(idx), hi = Math.ceil(idx);
+  return sorted[lo] + (sorted[hi] - sorted[lo]) * (idx - lo);
+}
+function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
+
+function makeName() { return `${pick(NAME_ADJ)} ${pick(NAME_NOUN)} ${10 + Math.floor(Math.random() * 90)}`; }
+function makeCode() {
+  const chars = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"; // no look-alike characters
+  const buf = new Uint32Array(8);
+  crypto.getRandomValues(buf);
+  const s = [...buf].map((n) => chars[n % chars.length]).join("");
+  return s.slice(0, 4) + "-" + s.slice(4);
+}
+function normCode(raw) {
+  const s = String(raw).toUpperCase().replace(/[^A-Z0-9]/g, "");
+  return s.length === 8 ? s.slice(0, 4) + "-" + s.slice(4) : s;
+}
+
+/* ============================================================
+   3. STATE + DATA
+   ============================================================ */
+const state = {
+  client: null,
+  user: null,
+  isAdmin: false,
+  screen: "welcome",
+  settings: null,
+  profile: null,         // my profile
+  code: null,            // my recovery code
+  profiles: new Map(),   // user_id -> profile
+  forecasts: [],         // all forecasts
+  adminKey: "",
+  indicator: INDICATORS[0].id,
+};
+
+const isOpen = () => !state.settings?.deadline || new Date(state.settings.deadline) > new Date();
+const deadlineText = () => state.settings?.deadline ? dateFmt.format(new Date(state.settings.deadline)) : "";
+const myForecast = (ind, days) => state.forecasts.find((f) => f.panelist_id === state.user.id && f.indicator === ind && f.horizon_days === days);
+const hasForecast = () => state.forecasts.some((f) => f.panelist_id === state.user.id);
+
+async function loadData() {
+  const c = state.client;
+  const [s, p, f] = await Promise.all([
+    c.from("delphi_settings").select("*").eq("id", 1).maybeSingle(),
+    c.from("delphi_profiles").select("user_id,display_name,role,country,experience,is_test").range(0, 9999),
+    c.from("delphi_forecasts").select("*").range(0, 9999),
+  ]);
+  if (s.error) throw s.error;
+  if (p.error) throw p.error;
+  if (f.error) throw f.error;
+  state.settings = s.data;
+  state.profiles = new Map((p.data || []).map((x) => [x.user_id, x]));
+  state.forecasts = f.data || [];
+  state.profile = state.profiles.get(state.user.id) || null;
+}
+
+async function loadMine() {
+  const { data } = await state.client.from("delphi_profiles").select("*").eq("user_id", state.user.id).maybeSingle();
+  state.profile = data || null;
+  if (data) {
+    const r = await state.client.from("delphi_secrets").select("recovery_code").eq("user_id", state.user.id).maybeSingle();
+    state.code = r.data?.recovery_code || state.code;
+  }
+}
+
+async function loadAdmin() {
+  const { data } = await state.client.from("delphi_admins").select("user_id").eq("user_id", state.user.id).maybeSingle();
+  state.isAdmin = !!data;
+}
+
+const refresh = async () => {
+  try {
+    await loadData();
+    renderDynamic();
+  } catch (e) { showError(e); }
+};
+
+/* ============================================================
+   4. SCREENS + RENDER
+   ============================================================ */
+const SCREENS = ["welcome", "restore", "about", "forecast", "results"];
+
+function go(screen) {
+  state.screen = screen;
+  for (const s of SCREENS) $("s-" + s).hidden = s !== screen;
+  renderHeader();
+  if (screen === "welcome") renderWelcome();
+  if (screen === "forecast") renderForecastForm();
+  if (screen === "results") renderResults();
+  window.scrollTo({ top: 0 });
+}
+
+// Re-render what is safe to refresh without clobbering typing.
+function renderDynamic() {
+  renderHeader();
+  if (state.screen === "welcome") renderWelcome();
+  if (state.screen === "results") renderResults();
+  if (state.screen === "forecast") renderForecastLock();
+  renderAdmin();
+}
+
+function renderHeader() {
+  const subs = {
+    welcome: "Share your view on Capesize and Panamax freight rates and see how the panel compares. Everything is anonymous.",
+    restore: "Pick up where you left off.",
+    about: "A little context so we can weight the results.",
+    forecast: "Give your forecasts and explain your thinking.",
+    results: "Live results from the whole panel.",
+  };
+  $("sub").textContent = subs[state.screen];
+  $("who").hidden = !state.profile;
+  if (state.profile) $("whoName").textContent = state.profile.display_name;
+}
+
+function renderWelcome() {
+  const q = state.settings?.question;
+  $("question").hidden = !q;
+  $("question").textContent = q || "";
+  $("welcomeDeadline").innerHTML = state.settings?.deadline
+    ? (isOpen() ? `Submissions are open until <strong>${esc(deadlineText())}</strong>.` : `Submissions closed on <strong>${esc(deadlineText())}</strong>.`)
+    : "";
+}
+
+function fillSelect(el, placeholder, items) {
+  el.innerHTML = `<option value="">${placeholder}</option>` + items.map(([v, l]) => `<option value="${esc(v)}">${esc(l)}</option>`).join("");
+}
+
+function renderForecastForm() {
+  $("fcards").innerHTML = INDICATORS.map((ind) => {
+    const cards = HORIZONS.map((h) => {
+      const m = myForecast(ind.id, h.days);
+      return `
+      <div class="card">
+        <h3>${h.label}</h3>
+        <div class="field">
+          <span class="pre">$/day</span>
+          <input id="v_${ind.id}_${h.days}" type="text" inputmode="decimal" autocomplete="off" aria-label="${esc(ind.name)} forecast, ${h.label.toLowerCase()}" value="${m ? esc(Number(m.value)) : ""}">
+        </div>
+        <label class="conf">How sure are you?
+          <select id="c_${ind.id}_${h.days}">
+            ${CONFIDENCE.map(([v, l]) => `<option value="${v}" ${(m?.confidence ?? 3) === v ? "selected" : ""}>${l}</option>`).join("")}
+          </select>
+        </label>
+      </div>`;
+    }).join("");
+    const any = state.forecasts.find((x) => x.panelist_id === state.user.id && x.indicator === ind.id && x.rationale);
+    return `
+    <div class="indblock">
+      <h2 style="margin:0">${esc(ind.name)}</h2>
+      <div class="cards">${cards}</div>
+      <label class="lab" for="why_${ind.id}" style="margin-top:18px">Your reasoning for ${esc(ind.name)}</label>
+      <textarea id="why_${ind.id}" placeholder="What is driving your view? Cargo demand, fleet supply, port congestion, seasonality, bunker costs...">${esc(any?.rationale || "")}</textarea>
+    </div>`;
+  }).join("");
+  $("fcBack").hidden = !hasForecast();
+  $("saveBtn").textContent = hasForecast() ? "Save changes" : "Submit forecasts";
+  setMsg("");
+  renderForecastLock();
+}
+
+function renderForecastLock() {
+  const open = isOpen();
+  document.querySelectorAll("#fcards input, #fcards select, #fcards textarea").forEach((el) => { el.disabled = !open; });
+  $("saveBtn").disabled = !open;
+  $("fcNote").textContent = open
+    ? "Enter each forecast in US dollars per day for the 5TC average." + (state.settings?.deadline ? ` You can revise until ${deadlineText()}.` : "")
+    : `Submissions closed on ${deadlineText()}.`;
+}
+
+/* ---- group results ---- */
+function rowsFor(ind, days) {
+  return state.forecasts.filter((f) => f.indicator === ind && f.horizon_days === days).map((f) => {
+    const p = state.profiles.get(f.panelist_id);
+    const e = EXP_BY_ID[p?.experience] || EXP_BY_ID["3-5"];
+    const conf = f.confidence || 3;
+    return { id: f.id, pid: f.panelist_id, value: Number(f.value), conf, years: e.years, weight: e.weight * conf, expLabel: e.label, name: p?.display_name || "Unknown" };
+  });
+}
+
+function vizHTML(h, rows) {
+  if (!rows.length) return `<p class="empty">No forecasts yet for this horizon.</p>`;
+  const sortedRows = [...rows].sort((a, b) => a.value - b.value);
+  const vals = sortedRows.map((r) => r.value);
+  const med = quantile(vals, 0.5), q1 = quantile(vals, 0.25), q3 = quantile(vals, 0.75);
+  const wsum = rows.reduce((s, r) => s + r.weight, 0);
+  const wavg = rows.reduce((s, r) => s + r.weight * r.value, 0) / wsum;
+  const avgYears = rows.reduce((s, r) => s + r.years, 0) / rows.length;
+  const avgConf = rows.reduce((s, r) => s + r.conf, 0) / rows.length;
+
+  const minV = vals[0], maxV = vals[vals.length - 1];
+  let lo = minV, hi = maxV;
+  if (lo === hi) { lo *= 0.95; hi *= 1.05; }
+  const pad = (hi - lo) * 0.08;
+  lo -= pad; hi += pad;
+
+  const W = 640, L = 14, R = 14, AX = 78;
+  const x = (v) => L + ((v - lo) / (hi - lo)) * (W - L - R);
+  const jitter = [-12, 0, 12, -6, 6];
+
+  const dots = sortedRows.map((row, idx) => {
+    const isMe = row.pid === state.user.id;
+    const cy = 42 + jitter[idx % jitter.length];
+    return `<circle class="${isMe ? "me" : "dot"}" cx="${x(row.value).toFixed(1)}" cy="${cy}" r="${isMe ? 7 : 5}"><title>${isMe ? "You: " : ""}${fmt(row.value)} (confidence ${row.conf}/5, ${esc(row.expLabel)})</title></circle>`;
+  }).join("");
+
+  const wx = x(wavg);
+  const wavgMark = `<polygon class="wavg" points="${wx},${AX + 3} ${wx + 6},${AX + 9} ${wx},${AX + 15} ${wx - 6},${AX + 9}"><title>Weighted average: ${fmt(wavg)}</title></polygon>`;
+
+  const close = x(maxV) - x(minV) < 110;
+  const axisLabels = close
+    ? `<text class="t" x="${x(minV).toFixed(1)}" y="${AX + 34}" text-anchor="middle">${fmt(minV)}</text>`
+    : `<text class="t" x="${x(minV).toFixed(1)}" y="${AX + 34}" text-anchor="start">${fmt(minV)}</text>
+       <text class="t" x="${x(maxV).toFixed(1)}" y="${AX + 34}" text-anchor="end">${fmt(maxV)}</text>`;
+
+  return `
+    <svg viewBox="0 0 ${W} ${AX + 42}" role="img" aria-label="Forecast spread, ${h.label.toLowerCase()}: median ${fmt(med)}, weighted average ${fmt(wavg)}, middle half ${fmt(q1)} to ${fmt(q3)}">
+      <rect class="band" x="${x(q1).toFixed(1)}" y="14" width="${Math.max(2, x(q3) - x(q1)).toFixed(1)}" height="56"></rect>
+      <line class="ax" x1="${L}" y1="${AX}" x2="${W - R}" y2="${AX}"></line>
+      <line class="tick" x1="${x(minV).toFixed(1)}" y1="${AX}" x2="${x(minV).toFixed(1)}" y2="${AX + 5}"></line>
+      <line class="tick" x1="${x(maxV).toFixed(1)}" y1="${AX}" x2="${x(maxV).toFixed(1)}" y2="${AX + 5}"></line>
+      ${axisLabels}
+      ${wavgMark}
+      <line class="med" x1="${x(med).toFixed(1)}" y1="8" x2="${x(med).toFixed(1)}" y2="${AX}"></line>
+      ${dots}
+    </svg>
+    <dl class="stats">
+      <div class="big"><dt>Median</dt><dd>${fmt(med)}</dd></div>
+      <div class="big"><dt>Weighted average</dt><dd>${fmt(wavg)}</dd></div>
+      <div><dt>Middle half</dt><dd>${fmt(q1)} to ${fmt(q3)}</dd></div>
+      <div><dt>Avg. experience</dt><dd>${avgYears.toFixed(1)} years</dd></div>
+      <div><dt>Avg. confidence</dt><dd>${avgConf.toFixed(1)} / 5</dd></div>
+      <div><dt>Panelists</dt><dd>${rows.length}</dd></div>
+    </dl>`;
+}
+
+function renderResults() {
+  const ind = INDICATORS.find((i) => i.id === state.indicator);
+  $("rtabs").innerHTML = INDICATORS.map((i) =>
+    `<button class="tab" role="tab" type="button" data-id="${i.id}" aria-selected="${i.id === state.indicator}">${esc(i.name)}</button>`).join("");
+  $("blocks").innerHTML = HORIZONS.map((h) =>
+    `<div class="block"><h3>${h.label}</h3><div class="viz">${vizHTML(h, rowsFor(ind.id, h.days))}</div></div>`).join("");
+
+  const open = isOpen();
+  $("reviseBtn").disabled = !open;
+  $("reviseBtn").textContent = open ? "Revise my answers" : "Submissions closed";
+  $("resNote").textContent = state.settings?.deadline
+    ? (open ? `You can revise your answers or come back until ${deadlineText()}.` : `Submissions closed on ${deadlineText()}. Results are final.`)
+    : "Results update live as panelists submit.";
+  $("reasonTitle").textContent = `Panel reasoning: ${ind.name}`;
+
+  // Reasoning for this indicator, grouped by panelist
+  const by = new Map();
+  for (const f of state.forecasts.filter((x) => x.indicator === ind.id)) {
+    if (!by.has(f.panelist_id)) by.set(f.panelist_id, []);
+    by.get(f.panelist_id).push(f);
+  }
+  const entries = [...by.entries()].map(([pid, rows]) => ({
+    pid,
+    text: (rows.find((x) => x.rationale) || {}).rationale || "",
+    rows: rows.sort((a, b) => a.horizon_days - b.horizon_days),
+    at: Math.max(...rows.map((x) => new Date(x.updated_at).getTime())),
+  })).filter((e) => e.text).sort((a, b) => b.at - a.at);
+
+  $("reasons").innerHTML = entries.length
+    ? entries.map((e) => {
+        const p = state.profiles.get(e.pid);
+        const exp = EXP_BY_ID[p?.experience]?.label;
+        const mine = e.pid === state.user.id;
+        return `<li>
+          <p class="by">${esc(p?.display_name || "Unknown")}${mine ? ` <span class="mine">(you)</span>` : ""}${exp ? ` <span>, ${esc(exp)}</span>` : ""}</p>
+          <p>${esc(e.text)}</p>
+          <div class="tags">${e.rows.map((x) => `<span>${x.horizon_days === 14 ? "2 weeks" : "1 month"}: ${fmt(Number(x.value))}</span>`).join("")}</div>
+        </li>`;
+      }).join("")
+    : `<li><p class="empty">No reasoning shared yet.</p></li>`;
+}
+
+/* ---- popup ---- */
+function openPopup(kind) {
+  const p = state.profile;
+  if (!p) return;
+  const dl = state.settings?.deadline && isOpen() ? ` until <strong>${esc(deadlineText())}</strong>` : "";
+  const idbox = `
+    <dl class="idbox">
+      <div><dt>Your anonymous name</dt><dd>${esc(p.display_name)}</dd></div>
+      <div><dt>Recovery code</dt><dd><span id="codeText">${esc(state.code || "")}</span> <button class="linkbtn" id="copyCode" type="button">Copy</button></dd></div>
+    </dl>`;
+  const keep = `<p>Keep the name and code somewhere safe. Use them with "I have been here before" to return from another browser or device.</p>`;
+  if (kind === "saved") {
+    $("popTitle").textContent = "Your forecast is saved";
+    $("popBody").innerHTML = `<p>Here are the group results. You can revise your answers or come back later${dl}.</p>${idbox}${keep}`;
+  } else if (kind === "created") {
+    $("popTitle").textContent = "Your anonymous name";
+    $("popBody").innerHTML = `<p>You will appear to everyone else under this name.</p>${idbox}${keep}`;
+  } else {
+    $("popTitle").textContent = "Your name and recovery code";
+    $("popBody").innerHTML = `${idbox}${keep}`;
+  }
+  const d = $("popup");
+  if (!d.open) d.showModal();
+}
+
+/* ---- facilitator ---- */
+const toLocalInput = (iso) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+};
+
+function renderAdmin() {
+  const box = $("adminBox");
+  if (!state.user) return;
+  box.hidden = false;
+  const key = String(state.isAdmin);
+  if (key !== state.adminKey) {
+    state.adminKey = key;
+    if (!state.isAdmin) {
+      $("adminSummary").textContent = "Facilitator setup";
+      $("adminBody").innerHTML = `
+        <p>To run the panel, add your anonymous ID to the facilitator list in Supabase, then reload this page.</p>
+        <p>Your ID: <code>${esc(state.user.id)}</code></p>
+        <p>SQL: <code>insert into public.delphi_admins (user_id) values ('${esc(state.user.id)}');</code></p>`;
+      return;
+    }
+    $("adminSummary").textContent = "Facilitator tools";
+    $("adminBody").innerHTML = `
+      <h3>Deadline and question</h3>
+      <p>Panelists can submit and revise until the deadline. Leave it empty for no deadline.</p>
+      <div class="adminrow">
+        <label><span>Deadline (your local time)</span><input class="textin" id="dlIn" type="datetime-local" value="${esc(toLocalInput(state.settings?.deadline))}"></label>
+      </div>
+      <label for="qIn" style="font-weight:600;display:block;margin:12px 0 6px">Question or instructions (optional)</label>
+      <textarea id="qIn" placeholder="e.g. Forecast the 5TC average for the period, not the spot level on the last day.">${esc(state.settings?.question || "")}</textarea>
+      <div class="adminbtns">
+        <button class="btn" type="button" id="saveSetBtn">Save settings</button>
+        <button class="btn ghost" type="button" id="closeNowBtn">Close submissions now</button>
+      </div>
+
+      <h3>Generate test responses</h3>
+      <p>Creates fake panelists with random roles, countries, experience and confidence. For each of Capesize and Panamax, their 2-week and 1-month forecasts have exactly the median you choose. This replaces any earlier test responses.</p>
+      <div class="adminrow">
+        <label><span>Number of responses (1 to 200)</span><input class="textin" id="genN" type="number" min="1" max="200" value="15"></label>
+        <label><span>Capesize median ($/day)</span><input class="textin" id="genMed" type="number" min="1" step="100" value="25000"></label>
+        <label><span>Panamax median ($/day)</span><input class="textin" id="genMedP" type="number" min="1" step="100" value="15000"></label>
+      </div>
+      <div class="adminbtns">
+        <button class="btn" type="button" id="genBtn">Generate test responses</button>
+        <button class="btn ghost" type="button" id="clearTestBtn">Remove test responses</button>
+        <button class="btn ghost" type="button" id="csvBtn">Export CSV</button>
+      </div>
+      <p id="testCount"></p>
+      <p class="msg" id="adminMsg" role="status"></p>`;
+  }
+  if (state.isAdmin && $("testCount")) {
+    const n = [...state.profiles.values()].filter((p) => p.is_test).length;
+    const real = state.profiles.size - n;
+    $("testCount").textContent = `Currently loaded: ${real} real panelist${real === 1 ? "" : "s"} and ${n} test response${n === 1 ? "" : "s"}.`;
+  }
+}
+
+function setAdminMsg(text, kind = "") { const m = $("adminMsg"); m.textContent = text; m.className = "msg " + kind; }
+function setMsg(text, kind = "") { const m = $("msg"); m.textContent = text; m.className = "msg " + kind; }
+
+function showError(e) {
+  console.error(e);
+  const f = $("fatal");
+  f.hidden = false;
+  f.innerHTML = `<h2>Something went wrong</h2><p>${esc(e?.message || e)}</p>
+    <p>Check that you ran the latest <code>supabase_setup.sql</code>, enabled anonymous sign-ins, and set the URL and anon key.</p>`;
+}
+
+/* ============================================================
+   5. ACTIONS
+   ============================================================ */
+async function createProfile() {
+  const roleSel = $("aRole").value, country = $("aCountry").value, exp = $("aExp").value;
+  const other = $("aRoleOther").value.trim();
+  const msg = $("aboutMsg");
+  msg.className = "msg err";
+  if (!roleSel || !country || !exp) { msg.textContent = "Please answer all three questions."; return; }
+  if (roleSel === "Other" && !other) { msg.textContent = "Please type your role."; return; }
+  const role = roleSel === "Other" ? "Other: " + other : roleSel;
+  msg.textContent = "";
+  $("aboutBtn").disabled = true;
+  let created = null, lastErr = null;
+  for (let i = 0; i < 8 && !created; i++) {
+    const name = makeName(), code = makeCode();
+    const { error } = await state.client.rpc("create_profile", { p_name: name, p_role: role, p_country: country, p_experience: exp, p_code: code });
+    if (!error) created = { name, code };
+    else if (error.code !== "23505") { lastErr = error; break; }
+    else lastErr = error;
+  }
+  $("aboutBtn").disabled = false;
+  if (!created) { msg.textContent = "Could not create your profile: " + (lastErr?.message || "try again."); return; }
+  state.code = created.code;
+  await loadData();
+  go("forecast");
+  openPopup("created");
+}
+
+async function restore() {
+  const name = $("rName").value.trim(), code = normCode($("rCode").value);
+  const msg = $("restoreMsg");
+  msg.className = "msg err";
+  if (!name || !code) { msg.textContent = "Enter both your name and recovery code."; return; }
+  msg.textContent = "";
+  $("restoreBtn").disabled = true;
+  const { data, error } = await state.client.rpc("claim_profile", { p_name: name, p_code: code });
+  $("restoreBtn").disabled = false;
+  if (error) { msg.textContent = "Could not restore: " + error.message; return; }
+  if (!data) { msg.textContent = "That name and code do not match. Check them and try again."; return; }
+  await loadData();
+  await loadMine();
+  go(hasForecast() ? "results" : "forecast");
+}
+
+async function save() {
+  if (!isOpen()) { setMsg("Submissions are closed.", "err"); return; }
+  const payload = [];
+  for (const ind of INDICATORS) {
+    const why = $("why_" + ind.id).value.trim();
+    const part = [];
+    for (const h of HORIZONS) {
+      const raw = $(`v_${ind.id}_${h.days}`).value.trim().replace(/[,$\s]/g, "");
+      const v = Number(raw);
+      if (raw === "" || !Number.isFinite(v) || v <= 0) {
+        setMsg(`Enter a positive number for ${ind.name}, ${h.label.toLowerCase()}.`, "err");
+        return;
+      }
+      part.push({
+        panelist_id: state.user.id,
+        indicator: ind.id,
+        horizon_days: h.days,
+        value: v,
+        confidence: Number($(`c_${ind.id}_${h.days}`).value),
+        rationale: why,
+        updated_at: new Date().toISOString(),
+      });
+    }
+    if (!why) { setMsg(`Add your reasoning for ${ind.name}.`, "err"); return; }
+    payload.push(...part);
+  }
+
+  $("saveBtn").disabled = true;
+  const { error } = await state.client.from("delphi_forecasts").upsert(payload, { onConflict: "panelist_id,indicator,horizon_days" });
+  $("saveBtn").disabled = false;
+  if (error) {
+    setMsg(/row-level security/i.test(error.message) ? "Submissions are closed." : "Could not save: " + error.message, "err");
+    return;
+  }
+  try { await loadData(); } catch (e) { return showError(e); }
+  state.indicator = INDICATORS[0].id;
+  go("results");
+  openPopup("saved");
+}
+
+async function saveSettings(deadlineIso) {
+  const q = $("qIn").value.trim();
+  const { error } = await state.client.from("delphi_settings").update({ deadline: deadlineIso, question: q || null }).eq("id", 1);
+  if (error) return setAdminMsg("Could not save: " + error.message, "err");
+  await loadData();
+  $("dlIn").value = toLocalInput(deadlineIso);
+  renderDynamic();
+  setAdminMsg("Settings saved.", "good");
+}
+
+async function generateTest() {
+  const n = parseInt($("genN").value, 10), med = Number($("genMed").value), medP = Number($("genMedP").value);
+  if (!Number.isInteger(n) || n < 1 || n > 200) return setAdminMsg("Choose between 1 and 200 responses.", "err");
+  if (!Number.isFinite(med) || med <= 0 || !Number.isFinite(medP) || medP <= 0) return setAdminMsg("Medians must be positive numbers.", "err");
+  $("genBtn").disabled = true;
+  setAdminMsg("Generating...");
+  const { error } = await state.client.rpc("admin_generate_test", { p_count: n, p_median_cape: med, p_median_pmx: medP });
+  $("genBtn").disabled = false;
+  if (error) return setAdminMsg("Could not generate: " + error.message, "err");
+  await refresh();
+  setAdminMsg(`Generated ${n} test responses. Median: Capesize ${fmt(med)}, Panamax ${fmt(medP)}.`, "good");
+}
+
+async function clearTest() {
+  const { error } = await state.client.rpc("admin_clear_test");
+  if (error) return setAdminMsg("Could not remove: " + error.message, "err");
+  await refresh();
+  setAdminMsg("Test responses removed.", "good");
+}
+
+async function exportCsv() {
+  await loadData();
+  const cell = (v) => `"${String(v ?? "").replace(/"/g, '""')}"`;
+  const lines = [["panelist", "role", "country", "experience", "indicator", "horizon_days", "value", "confidence", "rationale", "is_test", "updated_at"].join(",")];
+  const sorted = [...state.forecasts].sort((a, b) => a.indicator.localeCompare(b.indicator) || a.horizon_days - b.horizon_days);
+  for (const f of sorted) {
+    const p = state.profiles.get(f.panelist_id) || {};
+    lines.push([p.display_name, p.role, p.country, p.experience, f.indicator, f.horizon_days, f.value, f.confidence, f.rationale, f.is_test, f.updated_at].map(cell).join(","));
+  }
+  const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "freight_forecasts.csv";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+/* ============================================================
+   6. WIRING
+   ============================================================ */
+fillSelect($("aRole"), "Select your role", ROLES.map((r) => [r, r]));
+fillSelect($("aCountry"), "Select your country", COUNTRIES.map((c) => [c, c]));
+fillSelect($("aExp"), "Select years of experience", EXPERIENCE.map((e) => [e.id, e.label]));
+
+$("aRole").addEventListener("change", () => {
+  $("aRoleOtherWrap").hidden = $("aRole").value !== "Other";
+  if (!$("aRoleOtherWrap").hidden) $("aRoleOther").focus();
+});
+$("rtabs").addEventListener("click", (e) => {
+  const b = e.target.closest(".tab");
+  if (!b || b.dataset.id === state.indicator) return;
+  state.indicator = b.dataset.id;
+  renderResults();
+});
+$("startBtn").addEventListener("click", () => go("about"));
+$("toRestore").addEventListener("click", () => go("restore"));
+$("restoreBack").addEventListener("click", () => go("welcome"));
+$("aboutBack").addEventListener("click", () => go("welcome"));
+$("aboutBtn").addEventListener("click", createProfile);
+$("restoreBtn").addEventListener("click", restore);
+$("saveBtn").addEventListener("click", save);
+$("fcBack").addEventListener("click", () => go("results"));
+$("reviseBtn").addEventListener("click", () => go("forecast"));
+$("idBtn").addEventListener("click", () => openPopup("id"));
+$("popClose").addEventListener("click", () => $("popup").close());
+$("popup").addEventListener("click", (e) => {
+  if (e.target.id === "popup") $("popup").close();
+  if (e.target.id === "copyCode") {
+    navigator.clipboard?.writeText(state.code || "").then(() => { e.target.textContent = "Copied"; }, () => {});
+  }
+});
+
+$("adminBody").addEventListener("click", (e) => {
+  const id = e.target.id;
+  if (id === "saveSetBtn") {
+    const v = $("dlIn").value;
+    saveSettings(v ? new Date(v).toISOString() : null);
+  }
+  if (id === "closeNowBtn") saveSettings(new Date().toISOString());
+  if (id === "genBtn") generateTest();
+  if (id === "clearTestBtn") clearTest();
+  if (id === "csvBtn") exportCsv();
+});
+
+async function init() {
+  if (SUPABASE_URL.includes("YOUR-PROJECT") || SUPABASE_ANON_KEY.includes("YOUR-ANON")) {
+    $("setup").hidden = false;
+    return;
+  }
+  try {
+    state.client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let { data: { session } } = await state.client.auth.getSession();
+    if (!session) {
+      const { data, error } = await state.client.auth.signInAnonymously();
+      if (error) throw error;
+      session = data.session;
+    }
+    state.user = session.user;
+    await loadAdmin();
+    await loadData();
+    await loadMine();
+    $("app").hidden = false;
+    renderAdmin();
+    go(state.profile ? (hasForecast() ? "results" : "forecast") : "welcome");
+
+    const soon = debounce(refresh, 250);
+    state.client.channel("capesize-live")
+      .on("postgres_changes", { event: "*", schema: "public", table: "delphi_forecasts" }, soon)
+      .on("postgres_changes", { event: "*", schema: "public", table: "delphi_settings" }, soon)
+      .subscribe();
+    setInterval(refresh, POLL_SECONDS * 1000);
+  } catch (e) {
+    showError(e);
+  }
+}
+init();
+</script>
+</body>
+</html>
